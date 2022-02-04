@@ -1,10 +1,12 @@
 # Import essential libraries
-from re import X
-from cv2 import bitwise_and, createTrackbar, cubeRoot, imshow
+from cv2 import bitwise_and, createTrackbar
 import requests
 import cv2
 import numpy as np
 import imutils
+
+from rubik_solver import utils
+from rubik_solver.CubieCube import DupedEdge, DupedCorner
 
 import random
 
@@ -13,7 +15,30 @@ import tkinter as tk
 from tkinter import simpledialog
 
 #left, front, right, back, up, down
-CUBE = [[[0, 0, 0] for _ in range(3)] for _ in range(6)]
+# CFOP
+""" CUBE = [[[0, 0, 0], [0, 3, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 4, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 2, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 5, 0], [0, 0, 0]]] """
+#Kociemba
+CUBE = [[[0, 0, 0], [0, 2, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 4, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 3, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 5, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 0], [0, 0, 0]]]
+
+scanned = [False for _ in range(6)]
+notation = {
+    0: "w",
+    1: "r",
+    2: "b",
+    3: "o",
+    4: "g",
+    5: "y"
+}
 
 WHITE = (255, 255, 255)
 RED = (0, 0, 255)
@@ -82,7 +107,7 @@ def colorMask(HSV):
     maskValues *= 255
     return maskValues.clip(0, 255).astype("uint8")
     
-def drawContours(img, mask):
+def drawContours(img, mask): #redundant
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     for contour in contours:
         area = cv2.contourArea(contour)
@@ -100,7 +125,7 @@ def drawContours(img, mask):
             cv2.putText(img, "Area: " + str(int(area)), (x + w + 20, y + 45), cv2.FONT_HERSHEY_COMPLEX, .7,
                         (255, 0, 0), 2)
 
-def drawProgramView(img):
+def drawProgramView(img): #redundant
     x = y = 20
     w = h = 25
     space = 10
@@ -143,7 +168,22 @@ def colorSelector(img, HSV):
     
     return side
 
-def preview(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
+def createNotationAndSolve():
+    cubeNotation = ""
+    #left, front, right, back, up, down
+    #CFOP 5, 3, 2, 1, 0, 4
+    for num in [4, 0, 1, 2, 3, 5]:
+        for i in range(3):
+            for j in range(3):
+                cubeNotation += notation[CUBE[num][i][j]]
+    
+    print(cubeNotation)
+    try:
+        print(utils.solve(cubeNotation, 'Kociemba')) #Kociemba  CFOP
+    except DupedEdge or DupedCorner:
+        print("duplicate Edge!")
+
+def previewCFOP(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):  #redundant
     w = 30
     h = 30
     space = 10
@@ -164,16 +204,22 @@ def preview(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
 
     if center == 3:   # left      ORANGE
         CUBE[0] = side
+        scanned[0] = True
     elif center == 4: # front     GREEN
         CUBE[1] = side
+        scanned[1] = True
     elif center == 1: # right     RED
         CUBE[2] = side
+        scanned[2] = True
     elif center == 2: # back      BLUE
         CUBE[3] = side
+        scanned[3] = True
     elif center == 0: # up        WHITE
         CUBE[4] = side
+        scanned[4] = True
     elif center == 5: # bottom    YELLOW
         CUBE[5] = side
+        scanned[5] = True
 
     #left front right back
     for face in range(4):
@@ -199,8 +245,72 @@ def preview(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
             offsetY = (h + space) * j
             cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[5][j][i]], -1)
 
-    imshow("preview", previewWindow)
+    cv2.imshow("preview", previewWindow)
 
+def previewKociemba(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
+    w = 30
+    h = 30
+    space = 10
+    bigSpace = 30
+
+    cubeSize = (w + space)*3 - space
+
+    x = bigSpace
+    y = bigSpace*2 + cubeSize
+
+
+    previewWindow = np.zeros((470, 590, 3), np.uint8)
+
+    #change scanned side
+    #cube order: left, front, right, back, up, down
+    if side:
+        center = side[1][1]
+
+        if center == 2:   # left      BLUE
+            CUBE[0] = side
+            scanned[0] = True
+        elif center == 1: # front     RED
+            CUBE[1] = side
+            scanned[1] = True
+        elif center == 4: # right     GREEN
+            CUBE[2] = side
+            scanned[2] = True
+        elif center == 3: # back      ORANGE
+            CUBE[3] = side
+            scanned[3] = True
+        elif center == 5: # up        YELLOW
+            CUBE[4] = side
+            scanned[4] = True
+        elif center == 0: # bottom    WHITE
+            CUBE[5] = side
+            scanned[5] = True
+
+    #left front right back
+    for face in range(4):
+        for i in range(3):
+            offsetX = (w + space) * i + ((3* (w + space) - space + bigSpace) * face)
+            for j in range(3):
+                offsetY = (h + space) * j
+                cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[face][j][i]], -1)
+    
+    #up
+    x = bigSpace*2 + cubeSize
+    for i in range(3):
+        y = bigSpace
+        offsetX = (w + space) * i
+        for j in range(3):
+            offsetY = (h + space) * j
+            cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[4][j][i]], -1)
+    #down
+    for i in range(3):
+        y = bigSpace*3 + cubeSize*2
+        offsetX = (w + space) * i
+        for j in range(3):
+            offsetY = (h + space) * j
+            cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[5][j][i]], -1)
+
+    cv2.imshow("preview", previewWindow)
+    
 # trackbars
 def empty(v):
     pass
@@ -216,7 +326,7 @@ def testingTrackBars():
     cv2.createTrackbar("Val min", "TrackBars", 0, 255, empty)
     cv2.createTrackbar("Val max", "TrackBars", 255, 255, empty)
 
-def TrackBarValues(HSV):
+def TrackBarValues(HSV): #redundant
     h_min = cv2.getTrackbarPos("Hue min", "TrackBars")
     h_max = cv2.getTrackbarPos("Hue max", "TrackBars")
     s_min = cv2.getTrackbarPos("Sat min", "TrackBars")
@@ -234,14 +344,14 @@ def TrackBarValues(HSV):
 
 #testingTrackBars() #create track bars for testing
 
-preview()
+previewKociemba(None)          
 
 # While loop to continuously fetching data from the Url
 while True:
     img = getURL_image()
     #img = testIMG() #base image
     imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #HSV image
-    imgHSV = cv2.GaussianBlur(imgHSV, (7, 7), 1)#blur the image
+    imgHSV = cv2.medianBlur(imgHSV, 81, 1) #blur the image
 
     #trackbar mask | for finding thresholds
     """ mask = TrackBarValues(imgHSV)
@@ -266,6 +376,13 @@ while True:
         break
 
     if cv2.waitKey(33) == ord(" "):
-        preview(side)
+        previewKociemba(side)
+    
+    if cv2.waitKey(33) == ord("s"):
+        if True :#False not in scanned:
+            print(CUBE)
+            createNotationAndSolve()
+        else:
+            print("Need all sides scanned!")
 
 cv2.destroyAllWindows()
