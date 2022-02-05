@@ -5,7 +5,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 #setup verticies - points
-verticies = (
+verticies = [
     (1, -1, -1),
     (1, 1, -1),
     (-1, 1, -1),
@@ -14,9 +14,9 @@ verticies = (
     (1, 1, 1),
     (-1, -1, 1),
     (-1, 1, 1)
-)
+]
 #setup edges
-edges = (
+edges = [
     (0, 1),
     (0, 3),
     (0, 4),
@@ -29,7 +29,7 @@ edges = (
     (5, 1),
     (5, 4),
     (5, 7)
-)
+]
 
 def Cube():
     glBegin(GL_LINES)
@@ -40,20 +40,20 @@ def Cube():
     
     glEnd()
 
-def move(mouseMove, up_down_angle):
+def move(mouseMove, up_down_angle, viewMatrix):
     # get keys
     keypress = pygame.key.get_pressed()#Move using WASD
 
-    """ # init model view matrix
-    glLoadIdentity() """
+    # init model view matrix
+    glLoadIdentity()
 
     # apply the look up and down ////
     up_down_angle += mouseMove[1]*0.1
     glRotatef(up_down_angle, 1.0, 0.0, 0.0)
 
-    """ # init the view matrix /////
+    # init the view matrix /////
     glPushMatrix()
-    glLoadIdentity() """
+    glLoadIdentity()
 
     # apply the movment
     if keypress[pygame.K_w]:
@@ -68,13 +68,13 @@ def move(mouseMove, up_down_angle):
     # apply the left and right rotation
     glRotatef(mouseMove[0]*0.1, 0.0, 1.0, 0.0)
 
-    """ # multiply the current matrix by the get the new view matrix and store the final vie matrix 
+    # multiply the current matrix by the get the new view matrix and store the final vie matrix 
     glMultMatrixf(viewMatrix)
     viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
 
     # apply view matrix /////
     glPopMatrix()
-    glMultMatrixf(viewMatrix) """
+    glMultMatrixf(viewMatrix)
 
     
 
@@ -87,22 +87,22 @@ def main():
     pygame.mouse.set_visible(False) # hide the mouse
 
     #openGL
+    glMatrixMode(GL_PROJECTION)
     gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
-    glTranslatef(0.0, 0.0, -5)
-    glRotate(0, 0, 0, 0)
+
+    glMatrixMode(GL_MODELVIEW)
+    gluLookAt(0, -8, 0, 0, 0, 0, 0, 0, 1)
+    viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
+    glLoadIdentity()
 
     #movement
     # init mouse movement and center mouse on screen
     displayCenter = [scree.get_size()[i] // 2 for i in range(2)]
+    mouseMove = [0, 0]
     pygame.mouse.set_pos(displayCenter)
 
-    """ glMatrixMode(GL_MODELVIEW)
-    gluLookAt(0, -8, 0, 0, 0, 0, 0, 0, 1)
-    viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
-    glLoadIdentity() """
 
     # loop variables
-    mouseMove = [0, 0]
     up_down_angle = 0.0
     paused = False
     run = True
@@ -120,19 +120,25 @@ def main():
                 if event.key == pygame.K_PAUSE or event.key == pygame.K_p:
                     paused = not paused
                     pygame.mouse.set_visible(paused)
-                    pygame.mouse.set_pos(displayCenter)  
-            if event.type == pygame.MOUSEMOTION:
-                mouseMove = [event.pos[i] - displayCenter[i] for i in range(2)]
-                if not paused:
-                    pygame.mouse.set_pos(displayCenter)  
-            
-        
+                    #pygame.mouse.set_pos(displayCenter)  
+            if not paused:
+                if event.type == pygame.MOUSEMOTION:
+                    mouseMove = [event.pos[i] - displayCenter[i] for i in range(2)]
+                pygame.mouse.set_pos(displayCenter)  
+                
         if not paused:
-            move(mouseMove, up_down_angle)#, viewMatrix)
+            move(mouseMove, up_down_angle, viewMatrix)
 
             glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
+            #glPushMatrix()
+
+            glTranslatef(-1.5, 0, 0)
+            glColor4f(0.5, 0.2, 0.2, 1)
             Cube()
+            print(mouseMove, up_down_angle)
+
+            #glPopMatrix()
 
             pygame.display.flip()
             pygame.time.wait(10)

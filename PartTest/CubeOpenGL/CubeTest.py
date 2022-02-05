@@ -45,15 +45,24 @@ def cubie(coords):
     #create verticies - points
     x, y, z = coords
     verticies = [
-        (x, -y, -z),
-        (x, y, -z),
-        (-x, y, -z),
-        (-x, -y, -z),
-        (x, -y, z),
+        (x+0.33, y, z),
+        (x+0.33, y+0.33, z),
+        (x, y+0.33, z),
         (x, y, z),
-        (-x, -y, z),
-        (-x, y, z)
+        (x+0.33, y, z+0.33),
+        (x, y+0.33, z+0.33),
+        (x, y, z+0.33),
+        (x, y+0.33, z+0.33)
     ]
+    """ (x, -y, -z),
+    (x, y, -z),
+    (-x, y, -z),
+    (-x, -y, -z),
+    (x, -y, z),
+    (x, y, z),
+    (-x, -y, z),
+    (-x, y, z) """
+    #]
 
     #draw the plain
     glBegin(GL_QUADS)
