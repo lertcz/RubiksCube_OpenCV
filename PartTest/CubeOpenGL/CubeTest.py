@@ -39,6 +39,33 @@ colors = [
     (1, 1, 0), #Yellow
 ]
 
+translation_table = {
+    "R" : (0, 1.5, 1.5),
+    "L" : (0, 1.5, 1.5),
+    "U" : (1.5, 0, 1.5),
+    "D" : (1.5, 0, 1.5),
+    "F" : (1.5, 1.5, 0),
+    "B" : (1.5, 1.5, 0)
+}
+
+rotation_axis_table = {
+    "R" : (1, 0, 0),
+    "L" : (1, 0, 0),
+    "U" : (0, 1, 0),
+    "D" : (0, 1, 0),
+    "F" : (0, 0, 1),
+    "B" : (0, 0, 1)
+}
+
+side_condition_table = {
+    "R" : ["X", 2],
+    "L" : ["X", 0],
+    "U" : ["Y", 2],
+    "D" : ["Y", 0],
+    "F" : ["Z", 2],
+    "B" : ["Z", 0]
+}
+
 BLACK = (0, 0, 0)
 
 def rotate(turn):
@@ -51,44 +78,17 @@ def rotate(turn):
     if "'" in turn:
         ORIENTATION *= -1
         MAX *= -1
+        turn = turn.replace("'","")
     elif "2" in turn:
         MAX = 180
+        turn = turn.replace("2","")
     
-    if "R" in turn:
-        print(turn, ORIENTATION, MAX)
-        TRANSLATE = [0, 1.5, 1.5]
-        AXIS = [1, 0, 0]
-        SIDE_CONDITION = ["X", 2]
+    TRANSLATE = translation_table[turn]
+    AXIS = rotation_axis_table[turn]
+    SIDE_CONDITION = side_condition_table[turn]
 
-    elif "L" in turn:
-        print(turn, ORIENTATION, MAX)
-        TRANSLATE = [0, 1.5, 1.5]
-        AXIS = [1, 0, 0]
-        SIDE_CONDITION = ["X", 0]
 
-    elif "U" in turn:
-        print(turn, ORIENTATION, MAX)
-        TRANSLATE = [1.5, 0, 1.5]
-        AXIS = [0, 1, 0]
-        SIDE_CONDITION = ["Y", 2]
-
-    elif "D" in turn:
-        print(turn, ORIENTATION, MAX)
-        TRANSLATE = [1.5, 0, 1.5]
-        AXIS = [0, 1, 0]  
-        SIDE_CONDITION = ["Y", 0]
-
-    elif "F" in turn:
-        print(turn, ORIENTATION, MAX)
-        TRANSLATE = [1.5, 1.5, 0]
-        AXIS = [0, 0, 1]
-        SIDE_CONDITION = ["Z", 2]
-
-    elif "B" in turn:
-        print(turn, ORIENTATION, MAX)
-        TRANSLATE = [1.5, 1.5, 0]
-        AXIS = [0, 0, 1]
-        SIDE_CONDITION = ["Z", 0]
+    print(turn, ORIENTATION, MAX)
 
     if SIDE_CONDITION[1] == 2:
         #fix the rotation like real cube
@@ -208,8 +208,6 @@ def main():
     glRotate(-45, 0, 1, 0)
     
     TURNS = ["U", "U'", "U2", "L", "L'", "L2", "F", "F'", "F2", "R", "R'", "R2", "B", "B'", "B2", "D", "D'", "D2"]
-    #TURNS = ["F", "F'", "F2", "B", "B'", "B2"]
-    #TURNS = ["B", "B'", "B2"]
 
     while True:
         for turn in TURNS:
@@ -224,4 +222,5 @@ def main():
 
         quit("turned em all muhahahaha")
 
-main()
+if __name__ == "__main__":
+    main()
