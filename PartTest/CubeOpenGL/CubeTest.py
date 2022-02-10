@@ -68,27 +68,26 @@ side_condition_table = {
 
 BLACK = (0, 0, 0)
 
-def rotate(turn):
+def rotation_string_parser(input_str: str):
     ORIENTATION = 1
     MAX = 90
-    TRANSLATE = [0, 0, 0]
-    AXIS = [0, 0, 0]
-    SIDE_CONDITION = NONE
 
-    if "'" in turn:
-        ORIENTATION *= -1
-        MAX *= -1
-        turn = turn.replace("'","")
-    elif "2" in turn:
-        MAX = 180
-        turn = turn.replace("2","")
-    
-    TRANSLATE = translation_table[turn]
-    AXIS = rotation_axis_table[turn]
-    SIDE_CONDITION = side_condition_table[turn]
+    if len(input_str) == 2:
+        side, x = input_str
 
+        if x == "'":
+            ORIENTATION *= -1
+            MAX *= -1
 
-    print(turn, ORIENTATION, MAX)
+        elif x == "2":
+            MAX = 180
+
+    else:
+        side = input_str
+
+    TRANSLATE = translation_table[side]
+    AXIS = rotation_axis_table[side]
+    SIDE_CONDITION = side_condition_table[side]
 
     if SIDE_CONDITION[1] == 2:
         #fix the rotation like real cube
@@ -144,7 +143,7 @@ def Cube(rotation=None):
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
         glPushMatrix()
-        ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = rotate(rotation)
+        ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = rotation_string_parser(rotation)
         SIDE, VALUE = SIDE_CONDITION
         
         for z in points:
