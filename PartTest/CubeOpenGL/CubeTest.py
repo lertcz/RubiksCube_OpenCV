@@ -176,18 +176,27 @@ def Cube(rotation=None):
             #increment the turn degree
             TURN_DEGREE += ONE_STEP * ORIENTATION
 
-        for z in points:
+        if SIDE == "X":
+            for x in points:
+                if x == VALUE:
+                    for y in points:
+                        for z in points:
+                            cubie([x, y, z])
+        
+        elif SIDE == "Y":
             for y in points:
-                for x in points:
-                    if SIDE == "X":
-                        if x == VALUE:
+                if y == VALUE:
+                    for x in points:
+                        for z in points:
                             cubie([x, y, z])
-                    elif SIDE == "Y":
-                        if y == VALUE:
+        
+        elif SIDE == "Z":
+            for z in points:
+                if z == VALUE:
+                    for x in points:
+                        for y in points:
                             cubie([x, y, z])
-                    elif SIDE == "Z":
-                        if z == VALUE:
-                            cubie([x, y, z])
+
         glPopMatrix()
 
         #update screen
