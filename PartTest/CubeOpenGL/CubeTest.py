@@ -145,22 +145,28 @@ def Cube(rotation=None):
         glPushMatrix()
         ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = rotation_string_parser(rotation)
         SIDE, VALUE = SIDE_CONDITION
+
+        if SIDE == "X":
+            for x in points:
+                if x != VALUE:
+                    for y in points:
+                        for z in points:
+                            cubie([x, y, z])
         
-        for z in points:
+        elif SIDE == "Y":
             for y in points:
-                for x in points:
-                    if SIDE == "X":
-                        if x != VALUE:
+                if y != VALUE:
+                    for x in points:
+                        for z in points:
                             cubie([x, y, z])
-                    elif SIDE == "Y":
-                        if y != VALUE:
+        
+        elif SIDE == "Z":
+            for z in points:
+                if z != VALUE:
+                    for x in points:
+                        for y in points:
                             cubie([x, y, z])
-                    elif SIDE == "Z":
-                        if z != VALUE:
-                            cubie([x, y, z])
-                    
-
-
+        
         if rotation:    
             #unpack value
             glTranslate(*TRANSLATE)
