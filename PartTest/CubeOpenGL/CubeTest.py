@@ -1,3 +1,4 @@
+from pickle import NONE
 import pygame
 from pygame.locals import *
 
@@ -29,7 +30,6 @@ surfaces = [
     (4, 0, 3, 6)
 ]
 
-
 colors = [
     (0, 0, 1), #Blue
     (1, 0.5, 0), #Orange
@@ -41,28 +41,77 @@ colors = [
 
 BLACK = (0, 0, 0)
 
+def rotate(turn):
+    ORIENTATION = 1
+    MAX = 90
+    TRANSLATE = [0, 0, 0]
+    AXIS = [0, 0, 0]
+    SIDE_CONDITION = NONE
+
+    if "'" in turn:
+        ORIENTATION *= -1
+        MAX *= -1
+    elif "2" in turn:
+        MAX = 180
+    
+    if "R" in turn:
+        print(turn, ORIENTATION, MAX)
+        TRANSLATE = [0, 1.5, 1.5]
+        AXIS = [1, 0, 0]
+        SIDE_CONDITION = ["X", 2]
+
+    elif "L" in turn:
+        print(turn, ORIENTATION, MAX)
+        TRANSLATE = [0, 1.5, 1.5]
+        AXIS = [1, 0, 0]
+        SIDE_CONDITION = ["X", 0]
+
+    elif "U" in turn:
+        print(turn, ORIENTATION, MAX)
+        TRANSLATE = [1.5, 0, 1.5]
+        AXIS = [0, 1, 0]
+        SIDE_CONDITION = ["Y", 2]
+
+    elif "D" in turn:
+        print(turn, ORIENTATION, MAX)
+        TRANSLATE = [1.5, 0, 1.5]
+        AXIS = [0, 1, 0]  
+        SIDE_CONDITION = ["Y", 0]
+
+    elif "F" in turn:
+        print(turn, ORIENTATION, MAX)
+        TRANSLATE = [1.5, 1.5, 0]
+        AXIS = [0, 0, 1]
+        SIDE_CONDITION = ["Z", 2]
+
+    elif "B" in turn:
+        print(turn, ORIENTATION, MAX)
+        TRANSLATE = [1.5, 1.5, 0]
+        AXIS = [0, 0, 1]
+        SIDE_CONDITION = ["Z", 0]
+
+    if SIDE_CONDITION[1] == 2:
+        #fix the rotation like real cube
+        ORIENTATION *= -1
+        MAX *= -1
+        #--------
+
+    return [ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION]
+
+SIZE = 1
 def cubie(coords):
     #create verticies - points
     x, y, z = coords
     verticies = [
-        (x+0.33, y, z),
-        (x+0.33, y+0.33, z),
-        (x, y+0.33, z),
+        (x+SIZE, y, z),
+        (x+SIZE, y+SIZE, z),
+        (x, y+SIZE, z),
         (x, y, z),
-        (x+0.33, y, z+0.33),
-        (x, y+0.33, z+0.33),
-        (x, y, z+0.33),
-        (x, y+0.33, z+0.33)
+        (x+SIZE, y, z+SIZE),
+        (x+SIZE, y+SIZE, z+SIZE),
+        (x, y, z+SIZE),
+        (x, y+SIZE, z+SIZE)
     ]
-    """ (x, -y, -z),
-    (x, y, -z),
-    (-x, y, -z),
-    (-x, -y, -z),
-    (x, -y, z),
-    (x, y, z),
-    (-x, -y, z),
-    (-x, y, z) """
-    #]
 
     #draw the plain
     glBegin(GL_QUADS)
@@ -76,7 +125,7 @@ def cubie(coords):
     glEnd()
 
     #draw the outline
-    glLineWidth(10)
+    glLineWidth(5)
     glBegin(GL_LINES)
     for edge in edges:
         for vertex in edge:
@@ -84,15 +133,65 @@ def cubie(coords):
             glVertex3fv(verticies[vertex])
     
     glEnd()
+
+ONE_STEP = 6
+def Cube(rotation=None):
+    points = [0, 1, 2]
+    TURN_DEGREE = 0
     
+    while True:
+        #clear the canvas
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
-def Cube():
-    points = [0, 0.33, 0.66]
-    for z in points:
-        for y in points:
-            for x in points:
-                cubie([x, y, z])
+        glPushMatrix()
+        ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = rotate(rotation)
+        SIDE, VALUE = SIDE_CONDITION
+        
+        for z in points:
+            for y in points:
+                for x in points:
+                    if SIDE == "X":
+                        if x != VALUE:
+                            cubie([x, y, z])
+                    elif SIDE == "Y":
+                        if y != VALUE:
+                            cubie([x, y, z])
+                    elif SIDE == "Z":
+                        if z != VALUE:
+                            cubie([x, y, z])
+                    
 
+
+        if rotation:    
+            #unpack value
+            glTranslate(*TRANSLATE)
+            glRotate(TURN_DEGREE, *AXIS)
+            glTranslate(*[-axis for axis in TRANSLATE])
+
+            #increment the turn degree
+            TURN_DEGREE += ONE_STEP * ORIENTATION
+
+        for z in points:
+            for y in points:
+                for x in points:
+                    if SIDE == "X":
+                        if x == VALUE:
+                            cubie([x, y, z])
+                    elif SIDE == "Y":
+                        if y == VALUE:
+                            cubie([x, y, z])
+                    elif SIDE == "Z":
+                        if z == VALUE:
+                            cubie([x, y, z])
+        glPopMatrix()
+
+        #update screen
+        pygame.display.flip()
+        #delay
+        pygame.time.wait(10)
+
+        if TURN_DEGREE == MAX + (ONE_STEP * ORIENTATION):
+            break
 
 def main():
     #pygame
@@ -103,8 +202,14 @@ def main():
 
     #openGL
     gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
-    glEnable(GL_DEPTH_TEST);
-    glTranslatef(0.0, 0.0, -5)
+    glEnable(GL_DEPTH_TEST)
+    glTranslatef(0, -0.5, -10)
+    glRotate(20, 1, 0, 0)
+    glRotate(-45, 0, 1, 0)
+    
+    TURNS = ["U", "U'", "U2", "L", "L'", "L2", "F", "F'", "F2", "R", "R'", "R2", "B", "B'", "B2", "D", "D'", "D2"]
+    #TURNS = ["F", "F'", "F2", "B", "B'", "B2"]
+    #TURNS = ["B", "B'", "B2"]
 
     while True:
         for event in pygame.event.get():
@@ -113,26 +218,24 @@ def main():
                 quit()
 
         # get keys
-        keypress = pygame.key.get_pressed()#Move using WASD
+        keypress = pygame.key.get_pressed() # Move using WASD
 
         # apply the movment
         if keypress[pygame.K_w]:
-            glTranslatef(0, -0.1, 0)
+            glTranslatef(0, -0.25, 0)
         if keypress[pygame.K_s]:
-            glTranslatef(0, 0.1, 0)
+            glTranslatef(0, 0.25, 0)
         if keypress[pygame.K_d]:
-            glTranslatef(-0.1, 0, 0)
+            glTranslatef(-0.25, 0, 0)
         if keypress[pygame.K_a]:
-            glTranslatef(0.1, 0, 0)
+            glTranslatef(0.25, 0, 0)
 
-        #glRotate(1, 3, 1, 1)
-
-        #clear the canvas
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
         #draw the cube
-        Cube()
+        for turn in TURNS:
+            #draw the cube
+            Cube(turn)
+            pygame.time.wait(250)
 
-        pygame.display.flip()
-        pygame.time.wait(10)
+        quit("turned em all muhahahaha")
 
 main()

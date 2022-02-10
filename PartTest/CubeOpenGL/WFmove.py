@@ -123,7 +123,7 @@ def main():
                     #pygame.mouse.set_pos(displayCenter)  
             if not paused:
                 if event.type == pygame.MOUSEMOTION:
-                    mouseMove = [event.pos[i] - displayCenter[i] for i in range(2)]
+                    mouseMove = [mouseMove[i] + event.pos[i] - displayCenter[i] for i in range(2)]
                 pygame.mouse.set_pos(displayCenter)  
                 
         if not paused:
@@ -134,10 +134,8 @@ def main():
             #glPushMatrix()
 
             glTranslatef(-1.5, 0, 0)
-            glColor4f(0.5, 0.2, 0.2, 1)
             Cube()
             print(mouseMove, up_down_angle)
-
             #glPopMatrix()
 
             pygame.display.flip()

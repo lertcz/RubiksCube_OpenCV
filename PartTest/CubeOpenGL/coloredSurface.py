@@ -70,7 +70,7 @@ def main():
 
     #openGL
     gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
-    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST)
     glTranslatef(0.0, 0.0, -5)
 
     while True:
