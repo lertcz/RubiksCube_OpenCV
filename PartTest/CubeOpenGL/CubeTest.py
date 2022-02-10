@@ -212,26 +212,12 @@ def main():
     #TURNS = ["B", "B'", "B2"]
 
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-
-        # get keys
-        keypress = pygame.key.get_pressed() # Move using WASD
-
-        # apply the movment
-        if keypress[pygame.K_w]:
-            glTranslatef(0, -0.25, 0)
-        if keypress[pygame.K_s]:
-            glTranslatef(0, 0.25, 0)
-        if keypress[pygame.K_d]:
-            glTranslatef(-0.25, 0, 0)
-        if keypress[pygame.K_a]:
-            glTranslatef(0.25, 0, 0)
-
-        #draw the cube
         for turn in TURNS:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+
             #draw the cube
             Cube(turn)
             pygame.time.wait(250)
