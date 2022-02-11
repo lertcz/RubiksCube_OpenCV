@@ -1,4 +1,10 @@
+from ctypes import pointer
+from multiprocessing.dummy import current_process
 from pickle import NONE
+
+import time
+import logging
+logging.basicConfig(level=logging.DEBUG)
 import pygame
 from pygame.locals import *
 
@@ -133,79 +139,122 @@ def cubie(coords):
     
     glEnd()
 
-ONE_STEP = 6
-def Cube(rotation=None):
-    points = [0, 1, 2]
-    TURN_DEGREE = 0
-    
-    while True:
-        #clear the canvas
+
+class Big_Cube_model:
+    def __init__(self) -> None:
+        self.display = 0
+
+        self.curr_update = self.__basic_state_update
+
+        # pause duration in ticks
+        self.pause_duration = 60
+        self.pause_start = 0
+
+        # curr_rotation is string representing value to be parsed by rotation_string_parser
+        # parsed_rot_dat is list containing parsed value by rotation_string_parser
+        # turn degree ...
+        self.curr_rotation = None
+        self.parsed_rot_dat = []
+        self.turn_degree = 90
+
+        # all_points is list containing Cartesian product -- (0, 1, 2) x (0, 1, 2) x (0, 1, 2)
+        self.all_points = [None]*27
+        points = (0, 1, 2)
+        for z in points:
+            for y in points:
+                for x in points:
+                    self.all_points[9*z + 3*y + x] = [x,y,z]
+
+    def update(self,tick):
+        """
+        calls function saved in curr_update
+        """
+        self.curr_update(tick)
+
+    def __basic_state_update(self):
+        """
+        draws base model
+        """
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-
         glPushMatrix()
-        ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = rotation_string_parser(rotation)
-        SIDE, VALUE = SIDE_CONDITION
 
-        if SIDE == "X":
-            for x in points:
-                if x != VALUE:
-                    for y in points:
-                        for z in points:
-                            cubie([x, y, z])
+        for point in self.all_points:
+            cubie(point)
         
-        elif SIDE == "Y":
-            for y in points:
-                if y != VALUE:
-                    for x in points:
-                        for z in points:
-                            cubie([x, y, z])
-        
-        elif SIDE == "Z":
-            for z in points:
-                if z != VALUE:
-                    for x in points:
-                        for y in points:
-                            cubie([x, y, z])
-        
-        if rotation:    
-            #unpack value
-            glTranslate(*TRANSLATE)
-            glRotate(TURN_DEGREE, *AXIS)
-            glTranslate(*[-axis for axis in TRANSLATE])
-
-            #increment the turn degree
-            TURN_DEGREE += ONE_STEP * ORIENTATION
-
-        if SIDE == "X":
-            for x in points:
-                if x == VALUE:
-                    for y in points:
-                        for z in points:
-                            cubie([x, y, z])
-        
-        elif SIDE == "Y":
-            for y in points:
-                if y == VALUE:
-                    for x in points:
-                        for z in points:
-                            cubie([x, y, z])
-        
-        elif SIDE == "Z":
-            for z in points:
-                if z == VALUE:
-                    for x in points:
-                        for y in points:
-                            cubie([x, y, z])
-
         glPopMatrix()
 
         #update screen
         pygame.display.flip()
-        #delay
-        pygame.time.wait(10)
 
-        if TURN_DEGREE == MAX + (ONE_STEP * ORIENTATION):
-            break
+    def __rotation_animation_update(self,tick):
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+        glPushMatrix()
+
+        ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = self.parsed_rot_dat
+        SIDE, VALUE = SIDE_CONDITION
+        
+        ONE_STEP = 1
+
+        for x,y,z in self.all_points:
+            if SIDE == "X":
+                if x != VALUE:
+                    cubie([x, y, z])
+            elif SIDE == "Y":
+                if y != VALUE:
+                    cubie([x, y, z])
+            elif SIDE == "Z":
+                if z != VALUE:
+                    cubie([x, y, z])
+
+        #unpack value
+        glTranslate(*TRANSLATE)
+        glRotate(self.turn_degree, *AXIS)
+        glTranslate(*[-axis for axis in TRANSLATE])
+
+        #increment the turn degree
+        self.turn_degree += ONE_STEP * ORIENTATION
+
+        for x,y,z in self.all_points:
+            if SIDE == "X":
+                if x == VALUE:
+                    cubie([x, y, z])
+            elif SIDE == "Y":
+                if y == VALUE:
+                    cubie([x, y, z])
+            elif SIDE == "Z":
+                if z == VALUE:
+                    cubie([x, y, z])
+
+        #update screen
+        pygame.display.flip()
+
+        if self.turn_degree <= MAX + (ONE_STEP * ORIENTATION):
+            logging.info('Animation complete')
+            self.turn_degree = MAX
+            self.curr_update = self.__do_nothing_update
+
+        glPopMatrix()
+
+    def __do_nothing_update(self,tick):
+        """
+        does nothing, is saved to curr_update if there is no change happening
+        """
+        pass
+
+    def basic_state(self):
+        """
+        Draws basic state of model, updates curr_update
+        """
+        self.__basic_state_update()
+        self.curr_update = self.__do_nothing_update
+
+    def add_rotation(self,rotation: str):
+        """
+        calls rotation_string_parser on str rotation, then saves data and starts animation
+        """
+        logging.info(f"Rotation added {rotation}")
+        self.parsed_rot_dat = rotation_string_parser(rotation)
+        self.curr_update = self.__rotation_animation_update
 
 def main():
     #pygame
@@ -221,20 +270,49 @@ def main():
     glRotate(20, 1, 0, 0)
     glRotate(-45, 0, 1, 0)
     
+    Cube = Big_Cube_model()
     TURNS = ["U", "U'", "U2", "L", "L'", "L2", "F", "F'", "F2", "R", "R'", "R2", "B", "B'", "B2", "D", "D'", "D2"]
+    Cube.add_rotation("R2")
 
-    while True:
-        for turn in TURNS:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    quit()
+    tick = 0
+    tps = 30
+    tick_rate = 1/tps
+    test_sample = 100
+    loop_timer_begin = time.time()
+    running_perf_average = 0
 
-            #draw the cube
-            Cube(turn)
-            pygame.time.wait(250)
+    #Cube.basic_state()
 
-        quit("turned em all muhahahaha")
+    is_running = True
+    while is_running:
+        loop_timer_begin = time.time()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                is_running = False
+
+        #draw the cube
+        Cube.update(tick=tick)
+
+        tick+=1
+        loop_timer_end = time.time()
+        delta = (loop_timer_end - loop_timer_begin)
+        running_perf_average += delta
+
+        # if set tick rate (1/tps) is greater than loop time
+        delta = tick_rate - delta
+        if delta > 0:
+            time.sleep(delta)
+
+        # measures time per test_sample
+        if not (tick % test_sample):
+            # convert from s to ms
+            running_perf_average = (running_perf_average) * 1000 / test_sample
+            logging.debug(f"Tick: {tick}, avg time {running_perf_average:.5f} ms")
+            running_perf_average = 0
+    
+    pygame.quit()
+    quit()
 
 if __name__ == "__main__":
     main()
