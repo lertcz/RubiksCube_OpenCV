@@ -1,7 +1,3 @@
-from ctypes import pointer
-from multiprocessing.dummy import current_process
-from pickle import NONE
-
 import time
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -141,7 +137,7 @@ def cubie(coords):
 
 
 class Big_Cube_model:
-    def __init__(self) -> None:
+    def __init__(self, CubeColors, TurnSet) -> None:
         self.display = 0
 
         self.curr_update = self.__basic_state_update
@@ -155,7 +151,7 @@ class Big_Cube_model:
         # turn degree ...
         self.curr_rotation = None
         self.parsed_rot_dat = []
-        self.turn_degree = 90
+        self.turn_degree = 0
 
         # all_points is list containing Cartesian product -- (0, 1, 2) x (0, 1, 2) x (0, 1, 2)
         self.all_points = [None]*27
@@ -164,6 +160,16 @@ class Big_Cube_model:
             for y in points:
                 for x in points:
                     self.all_points[9*z + 3*y + x] = [x,y,z]
+
+        # load the tile colors
+        self.CubeColors = CubeColors
+
+        # load the sequence
+        self.TurnSet = TurnSet
+        self.nextTurn = 1
+
+        # play the first animation
+        self.add_rotation(TurnSet[0])
 
     def update(self,tick):
         """
@@ -228,10 +234,12 @@ class Big_Cube_model:
         #update screen
         pygame.display.flip()
 
-        if self.turn_degree <= MAX + (ONE_STEP * ORIENTATION):
+        if self.turn_degree == MAX + (ONE_STEP * ORIENTATION):
             logging.info('Animation complete')
-            self.turn_degree = MAX
-            self.curr_update = self.__do_nothing_update
+            self.turn_degree = 0
+            #self.curr_update = self.__do_nothing_update
+            self.add_rotation(self.TurnSet[self.nextTurn])
+            self.nextTurn += 1
 
         glPopMatrix()
 
@@ -270,18 +278,19 @@ def main():
     glRotate(20, 1, 0, 0)
     glRotate(-45, 0, 1, 0)
     
-    Cube = Big_Cube_model()
     TURNS = ["U", "U'", "U2", "L", "L'", "L2", "F", "F'", "F2", "R", "R'", "R2", "B", "B'", "B2", "D", "D'", "D2"]
-    Cube.add_rotation("R2")
+    Cube = Big_Cube_model(CubeColors=None, TurnSet=TURNS)
+
+    # Cube.basic_state()
 
     tick = 0
-    tps = 30
+    tps = 1024
     tick_rate = 1/tps
     test_sample = 100
     loop_timer_begin = time.time()
     running_perf_average = 0
 
-    #Cube.basic_state()
+    #Cube.add_rotation(TURNS[0])
 
     is_running = True
     while is_running:
