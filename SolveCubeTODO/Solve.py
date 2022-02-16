@@ -1,4 +1,4 @@
-from SolveCube.Validation import checkCube
+from Validation import checkCube
 import Validation
 
 """            ----------------

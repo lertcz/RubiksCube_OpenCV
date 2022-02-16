@@ -478,13 +478,8 @@ def main():
     
     glRotate(-45, 0, 1, 0)
     
-    #TURNS = ["U", "U'", "U2", "L", "L'", "L2", "F", "F'", "F2", "R", "R'", "R2", "B", "B'", "B2", "D", "D'", "D2"]
     TURNS = ["U", "B", "R", "F'", "B'", "L", "U'", "D", "B'", "U2", "R", "F'", "L2", "B2", "D'", "L2", "U2", "D", "F2", "U'", "R2", "F2"]
     COLORS = "wgooyrbogbgyobbgbboyyyrgywgrgwygyywobwrrowwbrrrorwbwog"
-    #COLORS = "yyyyyyyyybbbbbbbbbrrrrrrrrrgggggggggooooooooowwwwwwwww"
-    #COLORS = "wogrbywogoBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-    #TURNS = ["R2", "L2", "F2", "B2", "U2", "D2"] #checker
-    #TURNS = ["R", "U", "R'", "U'"]
     
     Cube = Big_Cube_model(CubeColors=COLORS, TurnSet=TURNS)
 
