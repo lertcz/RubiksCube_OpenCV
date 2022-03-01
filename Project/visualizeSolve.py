@@ -344,10 +344,6 @@ class Big_Cube_model:
 
             # load next animation
             if self.nextTurn < len(self.TurnSet):
-                #change colors
-                #self.__rotateFace_Color(self.TurnSet)
-                
-
                 # rotate colors after rotation
                 self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
                 # rotate
@@ -357,7 +353,7 @@ class Big_Cube_model:
             
             # if all animations have been played STOP
             else:
-                #self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
                 self.curr_update = self.__do_nothing_update
 
         glPopMatrix()
@@ -446,6 +442,7 @@ class Big_Cube_model:
                     cube[face1][2][x] = temp
 
 def visualize(COLORS, TURNS):
+    print(COLORS, TURNS)
     global font
 
     #pygame
@@ -464,14 +461,20 @@ def visualize(COLORS, TURNS):
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     glTranslatef(0, -.5, -10)
+    # front
     glRotate(20, 1, 0, 0)
-    
-    glRotate(-45, 0, 1, 0)
+    glRotate(-45, 0, 1, 0) 
+
+    #debug
+    #glTranslatef(0, -.5, -10)
+    # back
+    #glRotate(-20, 1, 0, 0)
+    #glRotate(135, 0, 1, 0) 
     
     
     Cube = Big_Cube_model(CubeColors=COLORS, TurnSet=TURNS)
 
-    # Cube.basic_state()
+    #Cube.basic_state()
 
     tick = 0
     tps = 30

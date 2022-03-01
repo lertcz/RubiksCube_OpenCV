@@ -312,7 +312,7 @@ class Big_Cube_model:
         
         # 1 2 3 6 | 90 must be divided by the number without reminder
         # amout of degrees moved per update
-        ONE_STEP = 3
+        ONE_STEP = 15
 
         for x,y,z in self.all_points:
             if SIDE == "X":
@@ -358,8 +358,8 @@ class Big_Cube_model:
                 #self.__rotateFace_Color(self.TurnSet)
                 
 
-                # rotate colors after rotation
-                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+                """ # rotate colors after rotation
+                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1]) """
                 # rotate
                 self.add_rotation(self.TurnSet[self.nextTurn])
                 # increment nextTurn
@@ -367,7 +367,7 @@ class Big_Cube_model:
             
             # if all animations have been played STOP
             else:
-                #self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
                 self.curr_update = self.__do_nothing_update
 
         glPopMatrix()
@@ -391,6 +391,10 @@ class Big_Cube_model:
         """
         logging.info(f"Rotation added {rotation}")
         self.parsed_rot_dat = rotation_string_parser(rotation)
+
+        # rotate colors after adding rotation
+        self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+
         self.curr_update = self.__rotation_animation_update
 
     def __rotateFace_Color(self, turn):

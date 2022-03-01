@@ -1,5 +1,4 @@
 # Import essential libraries
-from cv2 import bitwise_and
 import requests
 import cv2
 import numpy as np
@@ -12,6 +11,9 @@ from rubik_solver.CubieCube import DupedEdge, DupedCorner
 import tkinter as tk
 from tkinter import simpledialog
 
+# visualize
+import visualizeSolve as VS
+
 #left, front, right, back, up, down
 # CFOP
 CUBE = [[[0, 0, 0], [0, 3, 0], [0, 0, 0]],
@@ -23,20 +25,20 @@ CUBE = [[[0, 0, 0], [0, 3, 0], [0, 0, 0]],
 
 scanned = [False for _ in range(6)]
 notationCFOP = {
-    0: "w", # white  >
-    1: "r", # red    >
-    2: "b", # blue   >
-    3: "o", # orange >
-    4: "g", # green  >
-    5: "y"  # yellow >
+    0: "w",
+    1: "r",
+    2: "b",
+    3: "o",
+    4: "g",
+    5: "y"
 }
 notationKociemba = {
-    0: "y", # white  >
-    1: "g", # red    >
-    2: "o", # blue   >
-    3: "b", # orange >
-    4: "r", # green  >
-    5: "w"  # yellow >
+    0: "y",
+    1: "g",
+    2: "o",
+    3: "b",
+    4: "r",
+    5: "w"
 }
 
 WHITE = (255, 255, 255)
@@ -68,14 +70,11 @@ def getIP():
 
     # the input dialog
     USER_INP = simpledialog.askstring(title="IP",
-                                    prompt="What's your cam IP?")
-
+                                    prompt="What's your cam IP?\nhttp://_____:8080")
     return USER_INP
 
-def getURL_image():
+def getURL_image(url):
     try:
-        #url = "http://" + getIP() + "/shot.jpg"
-        url = "http://192.168.1.109:8080/shot.jpg"
         img_resp = requests.get(url) #get image from url
         img_arr = np.array(bytearray(img_resp.content), dtype=np.uint8)
         img = cv2.imdecode(img_arr, -1)
@@ -121,29 +120,23 @@ def colorSelector(img, HSV):
     
     return side
 
-def createNotationAndSolve(visualization: bool):
+def createNotationAndSolve():
     cubeNotation = ""
+    algNotation = ""
     #left, front, right, back, up, down
-    #CFOP 5, 3, 2, 1, 0, 4
     #Kociemba 4, 0, 1, 2, 3, 5
     for num in [4, 0, 1, 2, 3, 5]:
         for i in range(3):
             for j in range(3):
-                if visualization:
-                    cubeNotation += notationCFOP[CUBE[num][i][j]]
-                else:
-                    cubeNotation += notationKociemba[CUBE[num][i][j]]
+                algNotation += notationKociemba[CUBE[num][i][j]] # notation for library
+                cubeNotation += notationCFOP[CUBE[num][i][j]] # notation for visualizer
     
-    if visualization:
-        return cubeNotation
-    else:
-        print(cubeNotation)
-        try:
-            return [str(move) for move in utils.solve(cubeNotation, 'Kociemba')]
-        except DupedEdge or DupedCorner:
-            print("duplicate Edge!")
+    try:
+        return [cubeNotation, [str(move) for move in utils.solve(algNotation, 'Kociemba')]]
+    except DupedEdge or DupedCorner:
+        print("duplicate Edge or Corner!")
 
-def previewCFOP(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):  #redundant
+def previewCFOP(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
     w = 30
     h = 30
     space = 10
@@ -207,84 +200,22 @@ def previewCFOP(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):  #redundant
 
     cv2.imshow("preview", previewWindow)
 
-def previewKociemba(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
-    w = 30
-    h = 30
-    space = 10
-    bigSpace = 30
-
-    cubeSize = (w + space)*3 - space
-
-    x = bigSpace
-    y = bigSpace*2 + cubeSize
-
-
-    previewWindow = np.zeros((470, 590, 3), np.uint8)
-
-    #change scanned side
-    #cube order: left, front, right, back, up, down
-    if side:
-        center = side[1][1]
-
-        if center == 2:   # left      BLUE
-            CUBE[0] = side
-            scanned[0] = True
-        elif center == 1: # front     RED
-            CUBE[1] = side
-            scanned[1] = True
-        elif center == 4: # right     GREEN
-            CUBE[2] = side
-            scanned[2] = True
-        elif center == 3: # back      ORANGE
-            CUBE[3] = side
-            scanned[3] = True
-        elif center == 5: # up        YELLOW
-            CUBE[4] = side
-            scanned[4] = True
-        elif center == 0: # bottom    WHITE
-            CUBE[5] = side
-            scanned[5] = True
-
-    #left front right back
-    for face in range(4):
-        for i in range(3):
-            offsetX = (w + space) * i + ((3* (w + space) - space + bigSpace) * face)
-            for j in range(3):
-                offsetY = (h + space) * j
-                cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[face][j][i]], -1)
-    
-    #up
-    x = bigSpace*2 + cubeSize
-    for i in range(3):
-        y = bigSpace
-        offsetX = (w + space) * i
-        for j in range(3):
-            offsetY = (h + space) * j
-            cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[4][j][i]], -1)
-    #down
-    for i in range(3):
-        y = bigSpace*3 + cubeSize*2
-        offsetX = (w + space) * i
-        for j in range(3):
-            offsetY = (h + space) * j
-            cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[5][j][i]], -1)
-
-    cv2.imshow("preview", previewWindow)
-
 
 def scan():
+    #get the url of the app server
+    url = "http://" + getIP() + ":8080/shot.jpg"
+
     previewCFOP(None)          
 
     # While loop to continuously fetching data from the Url
     while True:
-        img = getURL_image()
-        #img = testIMG() #base image
-        imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #HSV image
+        img = getURL_image(url)
+        imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert to a HSV image
         imgHSV = cv2.medianBlur(imgHSV, 81, 1) #blur the image
 
         side = colorSelector(img, imgHSV)
 
-        #draw images and masks
+        #draw the view + colors seen
         cv2.imshow("Android_cam", img)
 
         # Press Esc key to exit
@@ -296,10 +227,10 @@ def scan():
         
         if cv2.waitKey(33) == ord("s"):
             if False not in scanned:
-                cv2.destroyAllWindows()
-                moves = createNotationAndSolve(False)
-                return [createNotationAndSolve(True), moves]
+                cv2.destroyAllWindows() #close all cv2 windows
+                VS.visualize(*createNotationAndSolve()) # recieve colors and turns
             else:
                 print("Need all sides scanned!")
 
-cv2.destroyAllWindows()
+if __name__ == '__main__':
+    scan()
