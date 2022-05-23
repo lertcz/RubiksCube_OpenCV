@@ -3,19 +3,24 @@ import requests
 import cv2
 import numpy as np
 import imutils
+from PIL import Image, ImageTk
+from rsa import verify
 
+# library for finding the path
 from rubik_solver import utils
 from rubik_solver.CubieCube import DupedEdge, DupedCorner
 
 # popup
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import messagebox
 
 # visualize
+import pygame
+from graphics import Button
 import visualizeSolve as VS
 
 #left, front, right, back, up, down
-# CFOP
+# green front, white top
 CUBE = [[[0, 0, 0], [0, 3, 0], [0, 0, 0]],
         [[0, 0, 0], [0, 4, 0], [0, 0, 0]],
         [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
@@ -60,37 +65,72 @@ yellow = [[35, 255, 255], [25, 50, 70]]
 
 colors = [red2, blue, orange, green, yellow]
 
+class IPpopup(tk.Toplevel):
+    def __init__(self, parent) -> None:
+        tk.Toplevel.__init__(self, parent)
+        self.parent = parent
+        self.title("IP")
+
+        prompt = tk.Label(self, text="What's your IP?")
+        IP1 = tk.Label(self, text="http://")
+        IP2 = tk.Label(self, text=":8080")
+        self.entry = tk.Entry(self)
+
+        connect = tk.Button(self, text="Connect", width=10, command=self.verify)
+        cancel = tk.Button(self, text="Cancel", bg="red", width=10, command=quit)
+
+        prompt.grid(row=0, column=1, padx=5, pady=5)
+
+        IP1.grid(row=1, column=0, padx=5, pady=5)
+        self.entry.grid(row=1, column=1, padx=5, pady=5)
+        IP2.grid(row=1, column=2, padx=5, pady=5)
+
+        connect.grid(row=2, column=1, padx=5, pady=5)
+        cancel.grid(row=3, column=1, padx=5, pady=5)
+
+        self.parent.bind("<Return>", lambda *event: verify())
+        self.protocol("WM_DELETE_WINDOW", quit) # terminate whole program if the popup is closed
+    
+    def verify(self):
+        global USER_INP
+            # get the url of the app server
+        USER_INP = "http://" + self.entry.get()  + ":8080/shot.jpg"
+        self.parent.destroy()
+
 # image
-def getIP():
+def getIP(error=None):
     #IP popup ---------------------------
     root = tk.Tk()
 
     #hide the root
     root.withdraw()
 
+    if error: #error warning from last input
+        messagebox.showwarning("ERROR", error)
+
     # the input dialog
-    USER_INP = simpledialog.askstring(title="IP",
-                                    prompt="What's your cam IP?\nhttp://_____:8080")
-    return USER_INP
+    IPpopup(root)
+
+    root.mainloop()
 
 def getURL_image(url):
     try:
-        img_resp = requests.get(url) #get image from url
+        img_resp = requests.get(url, timeout=3) #get image from url
         img_arr = np.array(bytearray(img_resp.content), dtype=np.uint8)
         img = cv2.imdecode(img_arr, -1)
-        img = imutils.resize(img, width=750, height=1800) #resize img
+        img = imutils.resize(img, width=600) #resize img
         img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE) #rotate 90deg
 
+        #print(img_resp.status_code)
         return img
 
-    except requests.exceptions.ConnectionError:
-        print("Invalid IP, terminating session")
-        print(url)
-        quit(1)
+    except (requests.exceptions.ConnectionError, requests.exceptions.InvalidURL):
+        getIP("Invalid IP")
+        return getURL_image(USER_INP)
 
 def colorSelector(img, HSV):
-    x = 80
-    y = 200
+    x = 45
+    y = 180
     w = h = 16
     space = 100
     side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
@@ -132,9 +172,11 @@ def createNotationAndSolve():
                 cubeNotation += notationCFOP[CUBE[num][i][j]] # notation for visualizer
     
     try:
+        #notation for colors and list of moves
         return [cubeNotation, [str(move) for move in utils.solve(algNotation, 'Kociemba')]]
     except DupedEdge or DupedCorner:
         print("duplicate Edge or Corner!")
+        quit(1)
 
 def previewCFOP(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
     w = 30
@@ -198,18 +240,18 @@ def previewCFOP(side = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]):
             offsetY = (h + space) * j
             cv2.rectangle(previewWindow, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), SIDES[CUBE[5][j][i]], -1)
 
-    cv2.imshow("preview", previewWindow)
-
+    #cv2.imshow("preview", previewWindow)
+    return previewWindow
 
 def scan():
-    #get the url of the app server
-    url = "http://" + getIP() + ":8080/shot.jpg"
-
+    # show the preview
     previewCFOP(None)          
+    
+    getIP()
 
     # While loop to continuously fetching data from the Url
     while True:
-        img = getURL_image(url)
+        img = getURL_image(USER_INP)
         imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert to a HSV image
         imgHSV = cv2.medianBlur(imgHSV, 81, 1) #blur the image
 
@@ -232,5 +274,48 @@ def scan():
             else:
                 print("Need all sides scanned!")
 
+def windowLoop(screen):
+    global side
+    getIP()
+
+    clock = pygame.time.Clock()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        # 192.168.1.121
+        img = getURL_image(USER_INP)
+        imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert to a HSV image
+        imgHSV = cv2.medianBlur(imgHSV, 81, 1) #blur the image
+
+        side = colorSelector(img, imgHSV)
+
+        camera = pygame.image.frombuffer(img.tobytes(), img.shape[1::-1], "BGR")
+        #cv2.imshow("Android_cam", img)
+        img = previewCFOP(None)
+        #cv2.imshow("preview", img)
+        preview = pygame.image.frombuffer(img.tobytes(), img.shape[1::-1], "BGR")
+
+        screen.blit(camera, (0, 0))
+        screen.blit(preview, (337, 0))
+        solveBtn.draw()
+        scanBtn.draw()
+        pygame.display.update()
+        clock.tick(60)
+
 if __name__ == '__main__':
-    scan()
+    global button
+
+    pygame.init()
+    # ----- window -----
+    (width, height) = (950, 600)
+    screen = pygame.display.set_mode((width, height))
+    pygame.display.set_caption('Cube Scan')
+    pygame.display.flip()
+    scanBtn = Button(screen, "Scan", 150, 40, (450, 500), 6, lambda: previewCFOP(side))
+    solveBtn = Button(screen, "Solve", 150, 40, (700, 500), 6, lambda: VS.visualize(*createNotationAndSolve())) # pack it into a function add all side dependency
+
+    windowLoop(screen)

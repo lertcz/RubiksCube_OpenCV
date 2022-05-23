@@ -1,6 +1,6 @@
 import time
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.disable()) #logging.DEBUG
 import numpy as np
 import pathlib
 
@@ -9,6 +9,8 @@ from pygame.locals import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
+
+from graphics import Graphics
 
 filePath = str(pathlib.Path(__file__).parent.resolve())
 
@@ -108,9 +110,9 @@ color_lookup_table = { # >:D
     "121": [None, None, None, None, 4, None],     # center
     "122": [None, None, None, 28, 5, None],  # e
     # layer 2
-    "000": [44, 15, None, None, None, 53],     # c
-    "001": [43, None, None, None, None, 50],     # e
-    "002": [42, None, None, 35, None, 47],       # c
+    "000": [44, 15, None, None, None, 51],     # c      left back cube (origin)
+    "001": [43, None, None, None, None, 52],     # e
+    "002": [42, None, None, 35, None, 53],       # c
     "010": [41, 12, None, None, None, None], # e
     "011": [40, None, None, None, None, None],   #center
     "012": [39, None, None, 32, None, None],     # e
@@ -119,12 +121,6 @@ color_lookup_table = { # >:D
     "022": [36, None, None, 29, 2, None],        # c
 
 }
-
-def drawMove(x, y, text):
-    textSurface = font.render(text, True, (255, 255, 255, 255)).convert_alpha()
-    textData = pygame.image.tostring(textSurface, "RGBA", True)
-    glWindowPos2d(x, y)
-    glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
 def rotation_string_parser(input_str: str):
     ORIENTATION = 1
@@ -222,6 +218,11 @@ class Big_Cube_model:
         self.parsed_rot_dat = []
         self.turn_degree = 0
 
+        # pause or resume the solve
+        self.solve = True
+        self.speed = 2 # normal speed
+        self.speeds = {1: "⏵", 2: "⏩", 3: "⏭"}
+
         # all_points is list containing Cartesian product -- (0, 1, 2) x (0, 1, 2) x (0, 1, 2)
         self.all_points = [None]*27
         points = (0, 1, 2)
@@ -269,6 +270,26 @@ class Big_Cube_model:
 
         return np.array([[[colors[face*9 + row*3 + col] for col in range(3)] for row in range(3)] for face in range(6)])
 
+    def controlBar(self):
+        height = 30
+        middle = graphics.display[0]/2
+        quarter = graphics.display[0]/4 #600 / 4
+        #draw text
+        graphics.drawText(middle, height, self.TurnSet[self.nextTurn-1], 56, "arial")
+        #draw speed buttons
+        graphics.drawText(quarter - 40, height, "+", 40, "arial")
+        graphics.drawText(quarter     , height, self.speeds[self.speed], 40, "segoeuisymbol") # ⏵ ⏩ ⏭
+        graphics.drawText(quarter + 40, height+2.5, "–", 40, "arial")
+
+        graphics.drawText(quarter*3, height, "⏸" if self.solve else "⏵", 40, "segoeuisymbol") # ⏵⏸
+
+    def changeSpeed(self, add):
+        if 1 <= self.speed + add <= 3:
+            self.speed += add
+
+    def play_pause(self):
+        self.solve = not self.solve
+
     def update(self,tick):
         """
         calls function saved in curr_update
@@ -297,12 +318,12 @@ class Big_Cube_model:
         ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = self.parsed_rot_dat
         SIDE, VALUE = SIDE_CONDITION
 
-        #draw text
-        drawMove(100, 100, self.TurnSet[self.nextTurn-1])
-        
+        # ----- extra graphic -----
+        self.controlBar()
+
         # 1 2 3 6 | 90 must be divided by the number without reminder
         # amout of degrees moved per update
-        ONE_STEP = 3
+        ONE_STEP = self.speed if self.solve else 0 # adaptive speed, equals 0 if solve is paused
 
         for x,y,z in self.all_points:
             if SIDE == "X":
@@ -336,8 +357,8 @@ class Big_Cube_model:
 
         #update screen
         pygame.display.flip()
-
-        if self.turn_degree == MAX + (ONE_STEP * ORIENTATION):
+        #print(abs(self.turn_degree), abs(MAX + (ONE_STEP * ORIENTATION)))
+        if abs(self.turn_degree) >= abs(MAX + (ONE_STEP * ORIENTATION)):
             logging.info('Animation complete')
             # reset rotation
             self.turn_degree = 0
@@ -443,14 +464,14 @@ class Big_Cube_model:
 
 def visualize(COLORS, TURNS):
     print(COLORS, TURNS)
-    global font
+    global graphics
 
     #pygame
     pygame.init()
-    display = (800, 600)
+    display = (600, 600)
     gameScreen = pygame.display.set_mode(display, DOUBLEBUF|OPENGL) # set pygame to be ready for 3 axis
     pygame.display.set_caption('Cube visualizer')
-    font = pygame.font.SysFont('arial', 64)
+    graphics = Graphics(gameScreen, display)
 
     #openGL
     gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
@@ -460,17 +481,10 @@ def visualize(COLORS, TURNS):
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    glTranslatef(0, -.5, -10)
+    glTranslatef(0, .5, -10) # 0, -.5, -10
     # front
-    glRotate(20, 1, 0, 0)
+    glRotate(28, 1, 0, 0) # 20
     glRotate(-45, 0, 1, 0) 
-
-    #debug
-    #glTranslatef(0, -.5, -10)
-    # back
-    #glRotate(-20, 1, 0, 0)
-    #glRotate(135, 0, 1, 0) 
-    
     
     Cube = Big_Cube_model(CubeColors=COLORS, TurnSet=TURNS)
 
@@ -483,15 +497,22 @@ def visualize(COLORS, TURNS):
     loop_timer_begin = time.time()
     running_perf_average = 0
 
-    #Cube.add_rotation(TURNS[0])
-
-    is_running = True
-    while is_running:
+    while True:
         loop_timer_begin = time.time()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                is_running = False
+                pygame.quit()
+                quit()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # lmb
+                button = graphics.detectButton(pygame.mouse.get_pos())
+                if button:
+                    button, param = button
+                    if button == "changeSpeed":
+                        Cube.changeSpeed(param)
+                    elif button == "play_pause":
+                        Cube.play_pause()
 
         #draw the cube
         Cube.update(tick=tick)
@@ -512,6 +533,6 @@ def visualize(COLORS, TURNS):
             running_perf_average = (running_perf_average) * 1000 / test_sample
             logging.debug(f"Tick: {tick}, avg time {running_perf_average:.5f} ms")
             running_perf_average = 0
-    
-    pygame.quit()
-    quit()
+
+#visualize("oorgwbybbwrrgobwwrgyyrgobrooobyrbgrrwggwbygwbywygyyoow", ['R', "F'", "L'", 'F', 'B2', 'R', 'L2', "B'", 'U', "R'", 'U2', 'B2', 'D2', 'F2', 'L2', 'F2', 'B2', 'U', 'L2', 'D'])
+#visualize("wwwwwwwwwooooooooogggggggggrrrrrrrrrbbbbbbbbbyyyyyyyyy", ["R2", "L2", "U2", "D2", "F2", "B2"])
