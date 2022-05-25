@@ -1,12 +1,8 @@
 # Import essential libraries
-import requests
-import cv2
+import requests, cv2, imutils
 import numpy as np
-import imutils
-from PIL import Image, ImageTk
-from rsa import verify
 
-# library for finding the path
+# library for finding the solve
 from rubik_solver import utils
 from rubik_solver.CubieCube import DupedEdge, DupedCorner
 
@@ -88,7 +84,7 @@ class IPpopup(tk.Toplevel):
         connect.grid(row=2, column=1, padx=5, pady=5)
         cancel.grid(row=3, column=1, padx=5, pady=5)
 
-        self.parent.bind("<Return>", lambda *event: verify())
+        self.entry.bind("<Return>", lambda event: self.verify())
         self.protocol("WM_DELETE_WINDOW", quit) # terminate whole program if the popup is closed
     
     def verify(self):

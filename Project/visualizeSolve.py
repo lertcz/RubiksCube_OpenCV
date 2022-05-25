@@ -2,7 +2,6 @@ import time
 import logging
 logging.basicConfig(level=logging.disable()) #logging.DEBUG
 import numpy as np
-import pathlib
 
 import pygame
 from pygame.locals import *
@@ -11,8 +10,6 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 from graphics import Graphics
-
-filePath = str(pathlib.Path(__file__).parent.resolve())
 
 #initialize edges
 edges = [
@@ -144,7 +141,7 @@ def rotation_string_parser(input_str: str):
     SIDE_CONDITION = side_condition_table[side]
 
     if SIDE_CONDITION[1] == 2:
-        #fix the rotation like real cube
+        #fix the rotation like a real cube - R and L don't turn the same way
         ORIENTATION *= -1
         MAX *= -1
         #--------
@@ -170,7 +167,7 @@ def cubie(coords, cubeColors):
 
     #draw the plain
     glBegin(GL_QUADS)
-    c = 0
+    c = 0 # go trough the list of sides
     
     for surface in surfaces:
         for vertex in surface:
@@ -221,7 +218,7 @@ class Big_Cube_model:
         # pause or resume the solve
         self.solve = True
         self.speed = 2 # normal speed
-        self.speeds = {1: "⏵", 2: "⏩", 3: "⏭"}
+        self.speeds = {1: "⏵", 2: "⏩", 3: "⏭"} # icons
 
         # all_points is list containing Cartesian product -- (0, 1, 2) x (0, 1, 2) x (0, 1, 2)
         self.all_points = [None]*27
@@ -274,20 +271,20 @@ class Big_Cube_model:
         height = 30
         middle = graphics.display[0]/2
         quarter = graphics.display[0]/4 #600 / 4
-        #draw text
+        # draw text
         graphics.drawText(middle, height, self.TurnSet[self.nextTurn-1], 56, "arial")
-        #draw speed buttons
+        # draw speed buttons
         graphics.drawText(quarter - 40, height, "+", 40, "arial")
         graphics.drawText(quarter     , height, self.speeds[self.speed], 40, "segoeuisymbol") # ⏵ ⏩ ⏭
         graphics.drawText(quarter + 40, height+2.5, "–", 40, "arial")
-
+        # pause button
         graphics.drawText(quarter*3, height, "⏸" if self.solve else "⏵", 40, "segoeuisymbol") # ⏵⏸
 
-    def changeSpeed(self, add):
+    def _changeSpeed(self, add):
         if 1 <= self.speed + add <= 3:
             self.speed += add
 
-    def play_pause(self):
+    def _play_pause(self):
         self.solve = not self.solve
 
     def update(self,tick):
@@ -321,9 +318,8 @@ class Big_Cube_model:
         # ----- extra graphic -----
         self.controlBar()
 
-        # 1 2 3 6 | 90 must be divided by the number without reminder
         # amout of degrees moved per update
-        ONE_STEP = self.speed if self.solve else 0 # adaptive speed, equals 0 if solve is paused
+        ONE_STEP = self.speed if self.solve else 0 # adaptive speed, pause option
 
         for x,y,z in self.all_points:
             if SIDE == "X":
@@ -357,24 +353,24 @@ class Big_Cube_model:
 
         #update screen
         pygame.display.flip()
-        #print(abs(self.turn_degree), abs(MAX + (ONE_STEP * ORIENTATION)))
+        
         if abs(self.turn_degree) >= abs(MAX + (ONE_STEP * ORIENTATION)):
             logging.info('Animation complete')
             # reset rotation
             self.turn_degree = 0
 
+            # rotate colors after rotation
+            self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+
             # load next animation
             if self.nextTurn < len(self.TurnSet):
-                # rotate colors after rotation
-                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
-                # rotate
+                # add next rotation
                 self.add_rotation(self.TurnSet[self.nextTurn])
                 # increment nextTurn
                 self.nextTurn += 1
             
             # if all animations have been played STOP
             else:
-                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
                 self.curr_update = self.__do_nothing_update
 
         glPopMatrix()
@@ -392,7 +388,7 @@ class Big_Cube_model:
         self.__basic_state_update()
         self.curr_update = self.__do_nothing_update
 
-    def add_rotation(self,rotation: str):
+    def add_rotation(self, rotation: str):
         """
         calls rotation_string_parser on str rotation, then saves data and starts animation
         """
@@ -411,11 +407,11 @@ class Big_Cube_model:
             elif turn[1] == "2":
                 ROTATE = -2
 
-        #find and rotate the current face
+        # find and rotate the current face
         currentFace = rotation_table[turn[0]][0]
         cube[currentFace] = np.rot90(cube[currentFace], ROTATE)
 
-        #create variables with each neighbouring face
+        # create variables with each neighbouring face
         face1, face2, face3, face4 = rotation_table[turn[0]][1]
 
         for x in range(3):
@@ -510,14 +506,14 @@ def visualize(COLORS, TURNS):
                 if button:
                     button, param = button
                     if button == "changeSpeed":
-                        Cube.changeSpeed(param)
+                        Cube._changeSpeed(param)
                     elif button == "play_pause":
-                        Cube.play_pause()
+                        Cube._play_pause()
 
         #draw the cube
         Cube.update(tick=tick)
 
-        tick+=1
+        tick += 1
         loop_timer_end = time.time()
         delta = (loop_timer_end - loop_timer_begin)
         running_perf_average += delta
@@ -534,5 +530,8 @@ def visualize(COLORS, TURNS):
             logging.debug(f"Tick: {tick}, avg time {running_perf_average:.5f} ms")
             running_perf_average = 0
 
+# demo
+# example solve
 #visualize("oorgwbybbwrrgobwwrgyyrgobrooobyrbgrrwggwbygwbywygyyoow", ['R', "F'", "L'", 'F', 'B2', 'R', 'L2', "B'", 'U', "R'", 'U2', 'B2', 'D2', 'F2', 'L2', 'F2', 'B2', 'U', 'L2', 'D'])
+# checker pattern
 #visualize("wwwwwwwwwooooooooogggggggggrrrrrrrrrbbbbbbbbbyyyyyyyyy", ["R2", "L2", "U2", "D2", "F2", "B2"])
