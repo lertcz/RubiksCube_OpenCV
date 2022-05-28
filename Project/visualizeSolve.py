@@ -1,8 +1,6 @@
-import time
-import logging
+import time, logging, sys
 logging.basicConfig(level=logging.disable()) #logging.DEBUG
 import numpy as np
-import pathlib
 
 import pygame
 from pygame.locals import *
@@ -11,8 +9,6 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 from graphics import Graphics
-
-filePath = str(pathlib.Path(__file__).parent.resolve())
 
 #initialize edges
 edges = [
@@ -318,13 +314,14 @@ class Big_Cube_model:
         ORIENTATION, MAX, AXIS, TRANSLATE, SIDE_CONDITION = self.parsed_rot_dat
         SIDE, VALUE = SIDE_CONDITION
 
-        # ----- extra graphic -----
+        # ----- button bar -----
         self.controlBar()
 
-        # 1 2 3 6 | 90 must be divided by the number without reminder
-        # amout of degrees moved per update
-        ONE_STEP = self.speed if self.solve else 0 # adaptive speed, equals 0 if solve is paused
+        # amout of degrees the side is rotated per update
+        # adaptive speed, dont rotate if solve is paused
+        ONE_STEP = self.speed if self.solve else 0
 
+        # create the side that is not rotated
         for x,y,z in self.all_points:
             if SIDE == "X":
                 if x != VALUE:
@@ -336,7 +333,7 @@ class Big_Cube_model:
                 if z != VALUE:
                     cubie([x, y, z], self.CubeColors)
 
-        #unpack value
+        #unpack value and rotate on given axis
         glTranslate(*TRANSLATE)
         glRotate(self.turn_degree, *AXIS)
         glTranslate(*[-axis for axis in TRANSLATE])
@@ -344,6 +341,7 @@ class Big_Cube_model:
         #increment the turn degree
         self.turn_degree += ONE_STEP * ORIENTATION
 
+        # create the rest
         for x,y,z in self.all_points:
             if SIDE == "X":
                 if x == VALUE:
@@ -355,26 +353,23 @@ class Big_Cube_model:
                 if z == VALUE:
                     cubie([x, y, z], self.CubeColors)
 
-        #update screen
-        pygame.display.flip()
-        #print(abs(self.turn_degree), abs(MAX + (ONE_STEP * ORIENTATION)))
+        pygame.display.flip() #update screen
         if abs(self.turn_degree) >= abs(MAX + (ONE_STEP * ORIENTATION)):
             logging.info('Animation complete')
             # reset rotation
             self.turn_degree = 0
 
+            # rotate colors after rotation
+            self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+
             # load next animation
             if self.nextTurn < len(self.TurnSet):
-                # rotate colors after rotation
-                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
-                # rotate
+                # start the next rotation
                 self.add_rotation(self.TurnSet[self.nextTurn])
                 # increment nextTurn
                 self.nextTurn += 1
             
-            # if all animations have been played STOP
-            else:
-                self.__rotateFace_Color(self.TurnSet[self.nextTurn-1])
+            else: # if all animations have been played STOP
                 self.curr_update = self.__do_nothing_update
 
         glPopMatrix()
@@ -471,6 +466,7 @@ def visualize(COLORS, TURNS):
     display = (600, 600)
     gameScreen = pygame.display.set_mode(display, DOUBLEBUF|OPENGL) # set pygame to be ready for 3 axis
     pygame.display.set_caption('Cube visualizer')
+    pygame.display.set_icon(pygame.image.load('icon.ico'))
     graphics = Graphics(gameScreen, display)
 
     #openGL
@@ -503,7 +499,7 @@ def visualize(COLORS, TURNS):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                quit()
+                sys.exit()
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # lmb
                 button = graphics.detectButton(pygame.mouse.get_pos())
@@ -534,5 +530,10 @@ def visualize(COLORS, TURNS):
             logging.debug(f"Tick: {tick}, avg time {running_perf_average:.5f} ms")
             running_perf_average = 0
 
+"""
+demos: 
+- exaple solve
+- checkered pattern
+"""
 #visualize("oorgwbybbwrrgobwwrgyyrgobrooobyrbgrrwggwbygwbywygyyoow", ['R', "F'", "L'", 'F', 'B2', 'R', 'L2', "B'", 'U', "R'", 'U2', 'B2', 'D2', 'F2', 'L2', 'F2', 'B2', 'U', 'L2', 'D'])
 #visualize("wwwwwwwwwooooooooogggggggggrrrrrrrrrbbbbbbbbbyyyyyyyyy", ["R2", "L2", "U2", "D2", "F2", "B2"])
