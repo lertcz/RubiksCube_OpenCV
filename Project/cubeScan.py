@@ -1,9 +1,7 @@
 # Import essential libraries
-from time import sleep
 import requests, cv2, sys
 import numpy as np
 import imutils
-from PIL import Image, ImageTk
 
 # library for finding the path
 from rubik_solver import utils
