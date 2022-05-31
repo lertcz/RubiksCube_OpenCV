@@ -1,9 +1,9 @@
 # Import essential libraries
-import requests, cv2, sys
+import requests, cv2, sys, os
 import numpy as np
 import imutils
 
-# library for finding the path
+# library for finding the solve
 from rubik_solver import utils
 
 # popup
@@ -15,7 +15,14 @@ import pygame
 from graphics import Button
 import visualizeSolve as VS
 
+#for exe file
+def resource_path(relative_path):
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
+
 #left, front, right, back, up, down
+#orange 3, green 4, red 1, blue 2, white 0, top 5
 # green front, white top
 CUBE = [[[0, 0, 0], [0, 3, 0], [0, 0, 0]],
         [[0, 0, 0], [0, 4, 0], [0, 0, 0]],
@@ -51,14 +58,14 @@ YELLOW = (0, 255, 255)
 SIDES = [WHITE, RED, BLUE, ORANGE, GREEN, YELLOW]
 
 #white = [[180, 255, 255], [0, 0, 50]]
-#red1 = [[180, 255, 255], [159, 50, 70]]
-red2 = [[9, 255, 255], [0, 50, 70]] #cube red is in range 2
+red1 = [[180, 255, 255], [159, 50, 70]]
+red2 = [[9, 255, 255], [0, 50, 70]]
 blue = [[128, 255, 255], [90, 50, 70]]
 orange = [[24, 255, 255], [10, 50, 70]]
 green = [[89, 255, 255], [36, 50, 70]]
 yellow = [[35, 255, 255], [25, 50, 70]]
 
-colors = [red2, blue, orange, green, yellow]
+colors = [red1, red2, blue, orange, green, yellow]
 
 class IPpopup(tk.Toplevel):
     def __init__(self, parent) -> None:
@@ -71,6 +78,7 @@ class IPpopup(tk.Toplevel):
         IP2 = tk.Label(self, text=":8080")
         self.entry = tk.Entry(self)
 
+        HELP = tk.Button(self, text="Help!", command=lambda: messagebox.showinfo("HELP", "You need to connect with app - IP Webcam\n Then start a server and write the your IP"))
         connect = tk.Button(self, text="Connect", width=10, command=self.verify)
         cancel = tk.Button(self, text="Cancel", bg="red", width=10, command=sys.exit)
 
@@ -81,6 +89,7 @@ class IPpopup(tk.Toplevel):
         IP2.grid(row=1, column=2, padx=5, pady=5)
 
         connect.grid(row=2, column=1, padx=5, pady=5)
+        HELP.grid(row=2, column=2, padx=5, pady=5)
         cancel.grid(row=3, column=1, padx=5, pady=5)
 
         self.bind("<Return>", lambda event: self.verify())
@@ -143,18 +152,17 @@ def colorSelector(img, HSV):
             for id, values in enumerate(colors):
                 lower = np.array(values[1])
                 upper = np.array(values[0])
-
                 mask = cv2.inRange(HSV, lower, upper)
                 
                 # if mask corespond to a color return it (white is base)
                 if mask[y + offsetY + 8][x + offsetX + 8]:
-                    side[j][i] = id+1
-                    colorChoice = SIDES[id+1]
-                    break
-            
+                    id = id+1 if id == 0 else id # compensate for the 2nd red color range
+                    side[j][i] = id
+                    colorChoice = SIDES[id]
+                    break   
+
             cv2.rectangle(img, (x + offsetX, y + offsetY), (x + w + offsetX, y + h + offsetY), colorChoice, 2)
             
-    
     return side
 
 def createNotation():
@@ -282,7 +290,7 @@ if __name__ == '__main__':
     (width, height) = (950, 600)
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption('Cube Scan')
-    pygame.display.set_icon(pygame.image.load('icon.ico'))
+    pygame.display.set_icon(pygame.image.load(resource_path('icon.ico')))
     pygame.display.flip()
     scanBtn = Button(screen, "Scan", 150, 40, (450, 500), 6, lambda: scan(screen, side))
     solveBtn = Button(screen, "Solve", 150, 40, (700, 500), 6, lambda: solve()) # pack it into a function add all side dependency

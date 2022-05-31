@@ -1,4 +1,4 @@
-import time, logging, sys
+import time, logging, sys, os
 logging.basicConfig(level=logging.disable()) #logging.DEBUG
 import numpy as np
 
@@ -9,6 +9,12 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 from graphics import Graphics
+
+#for exe file
+def resource_path(relative_path):
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
 
 #initialize edges
 edges = [
@@ -466,7 +472,7 @@ def visualize(COLORS, TURNS):
     display = (600, 600)
     gameScreen = pygame.display.set_mode(display, DOUBLEBUF|OPENGL) # set pygame to be ready for 3 axis
     pygame.display.set_caption('Cube visualizer')
-    pygame.display.set_icon(pygame.image.load('icon.ico'))
+    pygame.display.set_icon(pygame.image.load(resource_path('icon.ico')))
     graphics = Graphics(gameScreen, display)
 
     #openGL
